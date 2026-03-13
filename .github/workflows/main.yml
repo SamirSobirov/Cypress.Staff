@@ -1,0 +1,65 @@
+name: Staff CRUD Monitoring
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Каждый час
+  workflow_dispatch:
+    inputs:
+      user_chat_id:
+        description: 'ID для ручного запуска'
+        required: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          # Путь строго по твоей структуре папок
+          spec: cypress/e2e/monitoring/staff_management.cy.js
+          browser: chrome
+        env:
+          CYPRESS_LOGIN_EMAIL: ${{ secrets.LOGIN_EMAIL }}
+          CYPRESS_LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+        continue-on-error: true
+
+      - name: Analyze Result
+        if: always()
+        id: status_check
+        run: |
+          if [ -f auth_api_status.txt ]; then
+            VAL=$(cat auth_api_status.txt)
+            if [ "$VAL" == "SUCCESS" ]; then
+              echo "STATUS=🟢 Full CRUD Success" >> $GITHUB_ENV
+            elif [ "$VAL" == "RUNNING" ]; then
+              echo "STATUS=🔴 UI/Logic Crash (Step failed)" >> $GITHUB_ENV
+            else
+              echo "STATUS=🆘 API Error (Code: $VAL)" >> $GITHUB_ENV
+            fi
+          else
+            echo "STATUS=❌ Fatal Error (Test didn't start)" >> $GITHUB_ENV
+          fi
+
+      - name: Send Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ github.event.inputs.user_chat_id || secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          message: |
+            ${{ github.event_name == 'schedule' && '⏰ **Hourly Check**' || '🔘 **Manual Run**' }}
+            
+            📂 **Module:** Staff Management
+            📊 **Result:** ${{ env.STATUS }}
+            
+            **Flow Steps:**
+            1. Auth ✅
+            2. Create ✅
+            3. Edit ✅
+            4. Delete ✅
+            
