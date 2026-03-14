@@ -1,6 +1,6 @@
 describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
-  // Жестко заданные статические данные по вашему требованию
+  // Жестко заданные статические данные
   const initialFirstName = 'TestStaff';
   const initialLastName = 'TestStaff';
   const staffLogin = 'TestStaff9005';
@@ -18,7 +18,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.viewport(1280, 800);
 
     // =========================================================
-    // 🛡️ ЗАЩИТА ОТ ЗАВИСАНИЯ СТРАНИЦЫ В CI
+    // 🛡️ ЗАЩИТА ОТ ЗАВИСАНИЯ СТРАНИЦЫ
     // =========================================================
     cy.log('🛡️ Блокировка внешних скриптов для ускорения загрузки...');
     cy.intercept('GET', '**/google-analytics.com/**', { statusCode: 204 });
@@ -40,13 +40,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .should('not.be.disabled')
       .click({ force: true })
-      .clear()
+      .clear({ force: true })
       .type(Cypress.env('LOGIN_EMAIL'), { delay: 100, log: false }); 
 
     cy.get('input[type="password"]')
       .should('be.visible')
       .click({ force: true })
-      .clear()
+      .clear({ force: true })
       .type(Cypress.env('LOGIN_PASSWORD'), { delay: 100, log: false });
 
     cy.get('button.sign-in-page__submit')
@@ -62,17 +62,15 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       cy.writeFile('auth_api_status.txt', '1');
     });
 
-    // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Ждем, пока фронтенд сам уберет нас со страницы логина.
-    // Это гарантирует, что токен авторизации успешно сохранен в браузере!
+    // Ждем сохранения токена
     cy.url({ timeout: 20000 }).should('not.include', '/sign-in');
-    cy.wait(2000); // Даем еще пару секунд для надежности
+    cy.wait(2000); 
 
     cy.log('⚠️ Прямой переход в раздел Staff');
     cy.visit('https://triple-test.netlify.app/flight/ru/staff', { timeout: 120000 });
     
     cy.url({ timeout: 20000 }).should('include', '/staff');
     
-    // 🔥 Обязательно ждем отрисовку таблицы. Если таблица есть — права применились, и кнопка будет.
     cy.get('.p-datatable', { timeout: 30000 }).should('be.visible');
     
     // =========================================================
@@ -80,7 +78,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     // =========================================================
     cy.log('🟢 ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА');
 
-    // 🔥 Ищем кнопку через filter (обходит баги с регулярками) и кликаем
+    // 🔥 Ищем кнопку "Добавить" и БЬЕМ С ФОРСОМ
     cy.get('button', { timeout: 15000 })
       .filter(':contains("Добавить"), :contains("Add")')
       .first()
@@ -88,9 +86,9 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       
     cy.wait(2000); 
 
-    cy.get('input[placeholder="Supplier A"]').first().should('be.visible').click({ force: true }).clear().type(initialLastName, { delay: 100 });
-    cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click({ force: true }).clear().type(initialFirstName, { delay: 100 });
-    cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click({ force: true }).clear().type(staffEmail, { delay: 100 });
+    cy.get('input[placeholder="Supplier A"]').first().should('be.visible').click({ force: true }).clear({ force: true }).type(initialLastName, { delay: 100 });
+    cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click({ force: true }).clear({ force: true }).type(initialFirstName, { delay: 100 });
+    cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click({ force: true }).clear({ force: true }).type(staffEmail, { delay: 100 });
 
     cy.contains(/Логин|Login/i, { timeout: 30000 })
       .parent() 
@@ -111,14 +109,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
 
-    // 🔥 Ждем валидации формы
     cy.wait(1500);
 
-    // 🔥 Кликаем "Создать" БЕЗ force, ожидая, пока кнопка станет активной
+    // 🔥 Кликаем "Создать" С ФОРСОМ (пробиваем лоадеры), но сначала ждем разблокировки
     cy.contains('button.app-button--primary', /Создать|Create|Add/i, { timeout: 15000 })
       .should('be.visible')
       .should('not.be.disabled') 
-      .click();
+      .click({ force: true });
 
     cy.wait('@apiCreateStaff', { timeout: 20000 });
     cy.writeFile('auth_api_status.txt', '2');
@@ -153,14 +150,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .clear({ force: true })
       .type(editedFirstName, { delay: 100 });
     
-    // Ждем валидации перед сохранением
     cy.wait(1000);
     
-    // 🔥 Сохраняем тоже без force, чтобы убедиться, что данные прошли валидацию
+    // 🔥 Сохраняем С ФОРСОМ
     cy.contains('button.app-button--primary', /Сохранить|Save/i)
       .should('be.visible')
       .should('not.be.disabled')
-      .click();
+      .click({ force: true });
     
     cy.get('.p-datatable-tbody', { timeout: 15000 }).should('contain', `${editedFirstName}`);
     cy.writeFile('auth_api_status.txt', '3');
@@ -179,7 +175,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
 
-    // Модалка удаления обычно не требует валидации, тут force безопасен
     cy.get('.app-confirm-modal__button--accept', { timeout: 15000 })
       .should('be.visible')
       .click({ force: true }); 
