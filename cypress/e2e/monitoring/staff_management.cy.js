@@ -77,8 +77,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.get('input[placeholder="Supplier A"]').first().should('be.visible').click().type('TestStaff1', { delay: 100 });
     cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click().type('TestStaff1', { delay: 100 });
-    cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click().type('TestStaff9005@mail.com', { delay: 100 });
-
+    
     // 🔥 ЖЕЛЕЗОБЕТОННЫЙ ВВОД ЛОГИНА
     cy.get('input[placeholder*="логин"]', { timeout: 20000 })
       .scrollIntoView()         
@@ -86,6 +85,9 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .click({ force: true })   
       .clear({ force: true })
       .type('TestStaff9005', { delay: 100 });
+
+      cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click().type('TestStaff9005@mail.com', { delay: 100 });
+
 
     // Кликаем "Продолжить"
     cy.get('button.app-button--primary.app-button--sm')
