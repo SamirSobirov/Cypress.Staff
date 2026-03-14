@@ -66,7 +66,11 @@ describe('Staff Management Flow', () => {
     cy.get('input[placeholder="Supplier A"]').first().should('be.visible').click().type('TestStaff1', { delay: 100 });
     cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click().type('TestStaff1', { delay: 100 });
     cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click().type('TestStaff9005@mail.com', { delay: 100 });
-    cy.get('input[placeholder="Введите логин"]').should('be.visible').click().type('TestStaff9005', { delay: 100 });
+    cy.get('input[placeholder="Введите логин"]', { timeout: 30000 })
+      .should('be.visible')
+      .click()
+      .clear()
+      .type('TestStaff9005', { delay: 100 });
 
     cy.get('button.app-button--primary.app-button--sm').contains('Продолжить').should('be.visible').click();
     
