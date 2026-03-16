@@ -30,7 +30,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     // =========================================================
     // 🛡️ ЗАЩИТА ОТ ЗАВИСАНИЯ СТРАНИЦЫ
-    // Убрал блокировку image/media, так как в CI это часто ломает рендер React/Vue
     // =========================================================
     cy.log('🛡️ Блокировка аналитики...');
     cy.intercept('GET', '**/google-analytics.com/**', { statusCode: 204 });
@@ -42,17 +41,14 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     // =========================================================
     cy.log('🟢 ШАГ 1: НАЧАЛО АВТОРИЗАЦИИ');
     cy.intercept('POST', '**/login**').as('apiAuth');
-    cy.intercept('POST', '**/staff*').as('apiCreateStaff'); 
     cy.intercept('GET', '**/staff*').as('getStaffList');
 
     cy.url().should('include', '/sign-in');
 
-    // Ждем, пока отрендерится основной контейнер приложения (если есть id="app" или "root", лучше использовать его)
     cy.get('body').should('be.visible');
 
-    // 🔥 ИСПРАВЛЕНИЕ: Добавлено includeShadowDom на случай, если инпуты в Shadow Tree
     cy.get('input[type="text"], input[type="email"], input[name="email"], input[name="login"]', { timeout: 45000, includeShadowDom: true })
-      .should('exist') // Сначала проверяем, что он вообще есть в DOM
+      .should('exist')
       .first()
       .should('be.visible')
       .click({ force: true })
@@ -71,7 +67,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
 
-    // Обработка статуса авторизации
     cy.wait('@apiAuth', { timeout: 30000 }).then((interception) => {
       const statusCode = interception.response?.statusCode || 500;
       if (statusCode >= 400) {
@@ -132,21 +127,23 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.wait(1500); // Даем время интерфейсу применить выбранную роль
 
-    // 📸 ДЕЛАЕМ СКРИНШОТ перед кликом (посмотрим, заполнены ли поля и активна ли кнопка)
     cy.screenshot('1-before-create-click');
 
-    // Проверяем, что кнопка реально активна (не disabled) перед кликом
     cy.contains('button', /Создать|Create|Add/i, { timeout: 15000 })
       .should('be.visible')
-      .should('not.be.disabled') // Защита от заблокированной кнопки из-за ошибок валидации
+      .should('not.be.disabled') 
       .click({ force: true });
 
-    // 📸 ДЕЛАЕМ СКРИНШОТ после клика (посмотрим, не вылезла ли красная ошибка на форме)
     cy.wait(1500);
     cy.screenshot('2-after-create-click');
 
-    // Ожидаем запрос
-    cy.wait('@apiCreateStaff', { timeout: 20000 });
+    // 🔥 ВОТ ОНО: Ждем зеленую всплывашку вместо API-запроса
+    cy.contains('Сотрудник добавлен', { timeout: 20000 })
+      .should('be.visible');
+
+    // Даем таблице 2 секунды на обновление данных перед переходом к Шагу 3
+    cy.wait(2000); 
+
     cy.writeFile('auth_api_status.txt', '2');
 
     // =========================================================
