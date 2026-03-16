@@ -18,7 +18,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
   });
 
   it('Полный цикл: Авторизация -> Добавление -> Изменение -> Удаление', () => {
-    // Устанавливаем юзер-агент, чтобы обойти базовые защиты от ботов Netlify
+    // Устанавливаем юзер-агент
     cy.visit('https://triple-test.netlify.app/sign-in', { 
       timeout: 120000,
       headers: {
@@ -37,25 +37,24 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.url().should('include', '/sign-in');
 
-    // Даем приложению время загрузить все скрипты и отрендерить страницу
     cy.wait(3000); 
     cy.get('body').should('be.visible');
 
+    // 🔥 Убрали .trigger('change')
     cy.get('input[type="text"], input[type="email"], input[name="email"], input[name="login"]', { timeout: 45000, includeShadowDom: true })
       .should('exist')
       .first()
       .should('be.visible')
       .click({ force: true })
       .clear()
-      .type(Cypress.env('LOGIN_EMAIL'), { delay: 50, log: false })
-      .trigger('change', { force: true }); 
+      .type(Cypress.env('LOGIN_EMAIL'), { delay: 50, log: false }); 
 
+    // 🔥 Убрали .trigger('change')
     cy.get('input[type="password"]', { timeout: 30000, includeShadowDom: true })
       .should('be.visible')
       .click({ force: true })
       .clear()
-      .type(Cypress.env('LOGIN_PASSWORD'), { delay: 50, log: false })
-      .trigger('change', { force: true });
+      .type(Cypress.env('LOGIN_PASSWORD'), { delay: 50, log: false });
 
     cy.get('button[type="submit"], button.sign-in-page__submit')
       .should('be.visible')
@@ -93,9 +92,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
       
-    cy.get('input[placeholder="Supplier A"]', { timeout: 15000 }).first().should('be.visible').click({ force: true }).clear().type(initialLastName, { delay: 50 }).trigger('change', { force: true });
-    cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click({ force: true }).clear().type(initialFirstName, { delay: 50 }).trigger('change', { force: true });
-    cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click({ force: true }).clear().type(staffEmail, { delay: 50 }).trigger('change', { force: true });
+    // 🔥 ДАЕМ ВРЕМЯ NUXT СКАЧАТЬ JS-ЧАНК ДЛЯ ФОРМЫ (чтобы избежать белого экрана с ошибкой 500)
+    cy.wait(2500);
+
+    // 🔥 Убрали все .trigger('change')
+    cy.get('input[placeholder="Supplier A"]', { timeout: 15000 }).first().should('be.visible').click({ force: true }).clear().type(initialLastName, { delay: 50 });
+    cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click({ force: true }).clear().type(initialFirstName, { delay: 50 });
+    cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click({ force: true }).clear().type(staffEmail, { delay: 50 });
 
     cy.contains(/Логин|Login/i, { timeout: 30000 })
       .parent() 
@@ -105,8 +108,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true })   
       .clear()
-      .type(staffLogin, { delay: 50 })
-      .trigger('change', { force: true });
+      .type(staffLogin, { delay: 50 });
       
     cy.get('.p-dialog-header').first().click({ force: true, multiple: true });
 
@@ -119,7 +121,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
 
-    cy.wait(1500); // Даем время интерфейсу применить выбранную роль
+    cy.wait(1500); 
 
     cy.screenshot('1-before-create-click');
 
@@ -131,11 +133,9 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.wait(1500);
     cy.screenshot('2-after-create-click');
 
-    // 🔥 ВОТ ОНО: Ждем зеленую всплывашку вместо API-запроса
     cy.contains('Сотрудник добавлен', { timeout: 20000 })
       .should('be.visible');
 
-    // Даем таблице 2 секунды на обновление данных перед переходом к Шагу 3
     cy.wait(2000); 
 
     cy.writeFile('auth_api_status.txt', '2');
@@ -158,19 +158,18 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
 
+    // 🔥 Убрали .trigger('change')
     cy.get('input[type="text"]', { timeout: 10000 }).eq(0)
       .should('be.visible')
       .click({ force: true })
       .clear()
-      .type(editedLastName, { delay: 50 })
-      .trigger('change', { force: true });
+      .type(editedLastName, { delay: 50 });
 
     cy.get('input[type="text"]').eq(1)
       .should('be.visible')
       .click({ force: true })
       .clear()
-      .type(editedFirstName, { delay: 50 })
-      .trigger('change', { force: true });
+      .type(editedFirstName, { delay: 50 });
     
     cy.contains('button', /Сохранить|Save/i)
       .should('be.visible')
@@ -184,7 +183,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     // =========================================================
     cy.log('🟢 ШАГ 4: УДАЛЕНИЕ СОТРУДНИКА');
 
-    // Заменил .p-row-odd на универсальный селектор строки
     cy.get('.p-row-odd')
       .contains(`${editedFirstName}`)
       .should('be.visible')
