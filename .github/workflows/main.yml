@@ -1,4 +1,4 @@
-name: Staff Management CRUD Monitoring
+name: Staff Management 
 
 on:
   schedule:
