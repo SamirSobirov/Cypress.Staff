@@ -91,10 +91,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       expect(statusCode).to.be.lessThan(400);
     });
 
-    // =========================================================
+ // =========================================================
     // ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА
     // =========================================================
     cy.log('🟢 ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА');
+
+    // Перехватываем POST запрос создания (судя по твоим прошлым логам, это /api/staff)
+    cy.intercept('POST', '**/api/staff*').as('apiCreateStaff');
 
     cy.get('button', { timeout: 15000 })
       .filter(':contains("Добавить"), :contains("Add")')
@@ -102,12 +105,12 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
       
-    cy.wait(2500);
+    cy.wait(2500); // Ожидание анимации открытия модалки
 
-    // 🔥 ИСПОЛЬЗУЕМ {selectall}{backspace} ВМЕСТО .clear() ДЛЯ БЕЗОПАСНОГО ВВОДА
-    cy.get('input[placeholder="Supplier A"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 });
-    cy.get('input[placeholder="Supplier A"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 });
-    cy.get('input[placeholder="example@easybooking.com"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 });
+    // 1. Явно снимаем фокус через .blur() после каждого ввода
+    cy.get('input[placeholder="Supplier A"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 }).blur();
+    cy.get('input[placeholder="Supplier A"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 }).blur();
+    cy.get('input[placeholder="example@easybooking.com"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 }).blur();
 
     cy.contains(/Логин|Login/i, { timeout: 30000 })
       .parent() 
@@ -116,28 +119,34 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .scrollIntoView()         
       .should('be.visible')
       .focus()   
-      .type(`{selectall}{backspace}${staffLogin}`, { delay: 50 });
-      
-    cy.get('.p-dialog-header').first().click({ force: true });
+      .type(`{selectall}{backspace}${staffLogin}`, { delay: 50 })
+      .blur();
 
     cy.contains('button', /Продолжить|Continue|Next/i, { timeout: 15000 })
       .scrollIntoView() 
       .should('be.visible')
       .click({ force: true });
       
+    // 2. Убираем { force: true } при выборе роли, чтобы триггернуть реальный клик по радиобаттону
     cy.contains('.role-card', /Оператор|Operator/i, { timeout: 10000 })
       .scrollIntoView()
       .should('be.visible')
-      .click({ force: true });
+      .click(); 
 
-    cy.get('.p-dialog-header').first().click({ force: true });
     cy.wait(1500); 
 
+    // 3. Кликаем создать (без force, если это возможно, или с force, если перекрыто)
     cy.contains('button', /Создать|Create|Add/i, { timeout: 15000 })
       .scrollIntoView()
       .should('be.visible')
       .should('not.be.disabled') 
       .click({ force: true });
+
+    // 4. ГЛАВНОЕ: Ждем ответа от бэкенда, а не просто закрытия DOM
+    cy.wait('@apiCreateStaff', { timeout: 20000 }).then((interception) => {
+      const statusCode = interception.response?.statusCode || 500;
+      expect(statusCode).to.be.oneOf([200, 201]); // Проверяем успешный статус
+    });
 
     cy.get('.p-dialog', { timeout: 15000 }).should('not.exist');
     cy.wait(2000); 
