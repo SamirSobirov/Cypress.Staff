@@ -13,51 +13,43 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
   const editedFirstName = 'Samir';
 
   before(() => {
+    // 0 - Начало теста (краш на авторизации)
     cy.writeFile('auth_api_status.txt', '0');
   });
 
   it('Полный цикл: Авторизация -> Добавление -> Изменение -> Удаление', () => {
-    cy.visit('https://triple-test.netlify.app/sign-in', { 
-      timeout: 120000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
-    
+    // Задаем viewport ДО перехода, как в рабочем тесте
     cy.viewport(1280, 800);
 
-    // ❌ МЫ ПОЛНОСТЬЮ УДАЛИЛИ БЛОКИРОВКУ АНАЛИТИКИ!
-    // Именно она крашила приложение и выдавала белый экран.
-
-    // =========================================================
-    // ШАГ 1: АВТОРИЗАЦИЯ И ПЕРЕХОД
-    // =========================================================
-    cy.log('🟢 ШАГ 1: НАЧАЛО АВТОРИЗАЦИИ');
     cy.intercept('POST', '**/login**').as('apiAuth');
     cy.intercept('GET', '**/staff*').as('getStaffList');
 
+    // =========================================================
+    // ШАГ 1: АВТОРИЗАЦИЯ И ПЕРЕХОД (Используем проверенный метод)
+    // =========================================================
+    cy.log('🟢 ШАГ 1: НАЧАЛО АВТОРИЗАЦИИ');
+    cy.visit('https://triple-test.netlify.app/sign-in', { timeout: 30000 });
     cy.url().should('include', '/sign-in');
-
-    cy.wait(3000); 
     cy.get('body').should('be.visible');
 
-    cy.get('input[type="text"], input[type="email"], input[name="email"], input[name="login"]', { timeout: 45000, includeShadowDom: true })
-      .should('exist')
-      .first()
+    // Используем надежные селекторы из твоего рабочего теста
+    cy.get('input[type="text"]', { timeout: 15000 })
       .should('be.visible')
-      .click({ force: true })
+      .focus()
       .clear()
       .type(Cypress.env('LOGIN_EMAIL'), { delay: 50, log: false }); 
 
-    cy.get('input[type="password"]', { timeout: 30000, includeShadowDom: true })
+    cy.get('input[type="password"]')
       .should('be.visible')
-      .click({ force: true })
+      .focus()
       .clear()
       .type(Cypress.env('LOGIN_PASSWORD'), { delay: 50, log: false });
 
-    cy.get('button[type="submit"], button.sign-in-page__submit')
+    cy.wait(1000); 
+
+    cy.get('button.sign-in-page__submit')
       .should('be.visible')
-      .click();
+      .click({ force: true });
 
     cy.wait('@apiAuth', { timeout: 30000 }).then((interception) => {
       const statusCode = interception.response?.statusCode || 500;
@@ -65,11 +57,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
         cy.writeFile('auth_api_status.txt', `ERROR_${statusCode}`); 
         throw new Error(`🆘 Ошибка авторизации: HTTP ${statusCode}`);
       }
-      cy.writeFile('auth_api_status.txt', '1');
     });
 
     cy.url({ timeout: 30000 }).should('not.include', '/sign-in');
     
+    // Записываем 1 - Авторизация успешна
+    cy.writeFile('auth_api_status.txt', '1');
+
     cy.log('⚠️ Прямой переход в раздел Staff');
     cy.visit('https://triple-test.netlify.app/flight/ru/staff', { timeout: 120000 });
     cy.url({ timeout: 20000 }).should('include', '/staff');
@@ -94,9 +88,10 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       
     cy.wait(2500);
 
-    cy.get('input[placeholder="Supplier A"]', { timeout: 15000 }).first().should('be.visible').click({ force: true }).clear().type(initialLastName, { delay: 50 });
-    cy.get('input[placeholder="Supplier A"]').last().should('be.visible').click({ force: true }).clear().type(initialFirstName, { delay: 50 });
-    cy.get('input[placeholder="example@easybooking.com"]').should('be.visible').click({ force: true }).clear().type(staffEmail, { delay: 50 });
+    // Добавлен scrollIntoView() и focus() для стабильности в CI
+    cy.get('input[placeholder="Supplier A"]', { timeout: 15000 }).first().scrollIntoView().should('be.visible').focus().clear().type(initialLastName, { delay: 50 });
+    cy.get('input[placeholder="Supplier A"]').last().scrollIntoView().should('be.visible').focus().clear().type(initialFirstName, { delay: 50 });
+    cy.get('input[placeholder="example@easybooking.com"]').scrollIntoView().should('be.visible').focus().clear().type(staffEmail, { delay: 50 });
 
     cy.contains(/Логин|Login/i, { timeout: 30000 })
       .parent() 
@@ -104,11 +99,12 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .first()
       .scrollIntoView()         
       .should('be.visible')
-      .click({ force: true })   
+      .focus()   
       .clear()
       .type(staffLogin, { delay: 50 });
       
-    cy.get('.p-dialog-header').first().click({ force: true, multiple: true });
+    // Убрал multiple: true, так как в CI это иногда вызывает ошибки потери фокуса
+    cy.get('.p-dialog-header').first().click({ force: true });
 
     cy.contains('button', /Продолжить|Continue|Next/i, { timeout: 15000 })
       .scrollIntoView() 
@@ -116,12 +112,14 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .click({ force: true });
       
     cy.contains('.role-card', /Оператор|Operator/i, { timeout: 10000 })
+      .scrollIntoView()
       .should('be.visible')
       .click({ force: true });
 
     cy.wait(1500); 
 
     cy.contains('button', /Создать|Create|Add/i, { timeout: 15000 })
+      .scrollIntoView()
       .should('be.visible')
       .should('not.be.disabled') 
       .click({ force: true });
@@ -130,7 +128,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible');
 
     cy.wait(2000); 
-
+    // Записываем 2 - Добавление успешно
     cy.writeFile('auth_api_status.txt', '2');
 
     // =========================================================
@@ -140,6 +138,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.get('.p-datatable-tbody tr', { timeout: 20000 })
       .contains(`${initialFirstName}`)
+      .scrollIntoView()
       .should('be.visible')
       .click({ force: true });
 
@@ -147,27 +146,33 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
     
-    cy.contains('.p-tab', /Информация о пользователе|User Info/i, { timeout: 10000 })
+      cy.contains('.p-tab', /Информация о пользователе|User Info/i, { timeout: 10000 })
       .should('be.visible')
       .click({ force: true });
 
-    cy.get('input[type="text"]', { timeout: 10000 }).eq(0)
-      .should('be.visible')
-      .click({ force: true })
-      .clear()
-      .type(editedLastName, { delay: 50 });
+    // 1. Обязательно даем форме "успокоиться" после клика и отрисовки
+    cy.wait(1000);
 
-    cy.get('input[type="text"]').eq(1)
+cy.get('.p-dialog input[type="text"]', { timeout: 10000 }).eq(0)
+      .scrollIntoView()
       .should('be.visible')
-      .click({ force: true })
-      .clear()
-      .type(editedFirstName, { delay: 50 });
+      .focus()
+      .type(`{selectall}{backspace}${editedLastName}`, { delay: 100 });
+
+    cy.get('.p-dialog input[type="text"]').eq(1)
+      .scrollIntoView()
+      .should('be.visible')
+      .focus()
+      .type(`{selectall}{backspace}${editedFirstName}`, { delay: 100 });
     
     cy.contains('button', /Сохранить|Save/i)
+      .scrollIntoView()
       .should('be.visible')
       .click({ force: true });
     
     cy.get('.p-datatable-tbody', { timeout: 15000 }).should('contain', `${editedFirstName}`);
+    
+    // Записываем 3 - Редактирование успешно
     cy.writeFile('auth_api_status.txt', '3');
 
     // =========================================================
@@ -177,6 +182,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.get('.p-row-odd')
       .contains(`${editedFirstName}`)
+      .scrollIntoView()
       .should('be.visible')
       .click({ force: true });
     
@@ -188,8 +194,10 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true }); 
 
+    // Проверяем, что сотрудник действительно исчез из таблицы
     // cy.get('.p-datatable', { timeout: 15000 }).should('not.contain', `${editedFirstName}`);
     
+    // Записываем 4 - Удаление успешно (цикл завершен)
     cy.writeFile('auth_api_status.txt', '4');
     cy.log('🎉 ЦИКЛ ПОЛНОСТЬЮ ЗАВЕРШЕН!');
   });

@@ -23,7 +23,6 @@ jobs:
           spec: cypress/e2e/monitoring/staff_management.cy.js 
           browser: chrome
         env:
-          # Cypress автоматически подтянет переменные с префиксом CYPRESS_
           CYPRESS_LOGIN_EMAIL: ${{ secrets.LOGIN_EMAIL }}
           CYPRESS_LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
         continue-on-error: true
@@ -31,17 +30,14 @@ jobs:
       - name: Parse Diagnostic Data
         if: always()
         run: |
-          # Проверяем наличие файла и читаем его, убирая лишние пробелы/переносы
           if [ -f auth_api_status.txt ]; then
             RESULT=$(cat auth_api_status.txt | tr -d '[:space:]')
           else
             RESULT="UNKNOWN"
           fi
 
-          # Настройка стартовых индикаторов
           S1="⏳"; S2="⏳"; S3="⏳"; S4="⏳"; STATUS="🔴 Failed"
 
-          # Расшифровка этапов
           case "$RESULT" in
             "0") S1="❌"; STATUS="❌ UI Crash at Auth" ;;
             "1") S1="✅"; S2="❌"; STATUS="⚠️ Failed at Create" ;;
@@ -52,7 +48,6 @@ jobs:
             *) STATUS="❌ Unknown Failure / File Missing" ;;
           esac
 
-          # Передаем переменные в GITHUB_ENV
           echo "S1=$S1" >> $GITHUB_ENV
           echo "S2=$S2" >> $GITHUB_ENV
           echo "S3=$S3" >> $GITHUB_ENV
@@ -64,7 +59,6 @@ jobs:
         if: failure() || always()
         with:
           name: cypress-artifacts
-          # Сохраняем и скрины, и видео, чтобы точно увидеть, что было на экране
           path: |
             cypress/screenshots/
             cypress/videos/
@@ -74,7 +68,11 @@ jobs:
         if: always()
         uses: appleboy/telegram-action@master
         with:
-          to: ${{ github.event.inputs.user_chat_id != '' && github.event.inputs.user_chat_id || secrets.TELEGRAM_CHAT_ID }}
+          # Использован безопасный синтаксис из первого рабочего файла
+          to: >-
+            ${{ (github.event.inputs.user_chat_id != '') && 
+            github.event.inputs.user_chat_id || 
+            secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_TOKEN }} 
           format: markdown
           message: |
