@@ -91,12 +91,12 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       expect(statusCode).to.be.lessThan(400);
     });
 
- // =========================================================
+    // =========================================================
     // ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА
     // =========================================================
     cy.log('🟢 ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА');
 
-    // Перехватываем POST запрос создания (судя по твоим прошлым логам, это /api/staff)
+    // Перехватываем POST запрос создания
     cy.intercept('POST', '**/api/staff*').as('apiCreateStaff');
 
     cy.get('button', { timeout: 15000 })
@@ -127,22 +127,23 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
       
-    // 2. Убираем { force: true } при выборе роли, чтобы триггернуть реальный клик по радиобаттону
+    // 2. Убираем { force: true } при выборе роли
     cy.contains('.role-card', /Оператор|Operator/i, { timeout: 10000 })
       .scrollIntoView()
       .should('be.visible')
       .click(); 
 
-    cy.wait(1500); 
+    // 🔥 Жестко ждем 1 секунду для перерендера компонента React/Vue
+    cy.wait(1000); 
 
-    // 3. Кликаем создать (без force, если это возможно, или с force, если перекрыто)
+    // 3. Кликаем создать СТРОГО БЕЗ force: true!
     cy.contains('button', /Создать|Create|Add/i, { timeout: 15000 })
       .scrollIntoView()
       .should('be.visible')
       .should('not.be.disabled') 
-      .click({ force: true });
+      .click(); // <--- УБРАЛИ { force: true }
 
-    // 4. ГЛАВНОЕ: Ждем ответа от бэкенда, а не просто закрытия DOM
+    // 4. Ждем ответа от бэкенда
     cy.wait('@apiCreateStaff', { timeout: 20000 }).then((interception) => {
       const statusCode = interception.response?.statusCode || 500;
       expect(statusCode).to.be.oneOf([200, 201]); // Проверяем успешный статус
