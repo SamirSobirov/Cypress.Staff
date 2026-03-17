@@ -132,9 +132,9 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.wait(1500); // Даем время на обновление стейта валидации
 
     // Кликаем "Создать" (без force, чтобы проверить реальную доступность)
-    cy.contains('button', /Создать|Create|Add/i, { timeout: 15000 })
+    cy.contains('.app-button', /Создать|Create|Add/i, { timeout: 15000 })
       .should('be.visible')
-      .should('not.be.disabled') 
+      .should('not.be.disabled')
       .click(); 
 
     cy.wait('@apiCreateStaff', { timeout: 20000 }).then((interception) => {
