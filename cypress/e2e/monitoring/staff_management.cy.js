@@ -5,18 +5,16 @@ Cypress.on('uncaught:exception', (err, runnable) => {
 
 describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
   // Берем последние 6 цифр, чтобы ID был уникальным, но не слишком длинным для полей ввода
-  const uniqueId = Date.now().toString().slice(-6); 
+const uniqueId = Math.floor(Math.random() * 10000000); 
 
-  // Делаем данные уникальными, чтобы старые зависшие записи не ломали новые тесты
+  // Делаем данные 100% уникальными для каждого прогона
   const initialFirstName = `Staff_${uniqueId}`; 
   const initialLastName = 'TestStaff';
   const staffLogin = `login${uniqueId}`;
   const staffEmail = `test${uniqueId}@mail.ru`;
   
   const editedLastName = 'Sobirov';
-  // Имя после редактирования тоже делаем уникальным
   const editedFirstName = `Samir_${uniqueId}`;
-
   before(() => {
     // 0 - Начало теста (краш на авторизации)
     cy.writeFile('auth_api_status.txt', '0');
