@@ -32,13 +32,26 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     // =========================================================
     // ШАГ 1: АВТОРИЗАЦИЯ И ПЕРЕХОД
     // =========================================================
-    cy.log('🟢 ШАГ 1: НАЧАЛО АВТОРИЗАЦИИ');
-    cy.visit('https://triple-test.netlify.app/sign-in', { timeout: 30000 });
+   cy.log('🟢 ШАГ 1: НАЧАЛО АВТОРИЗАЦИИ');
+    
+    // 🛡️ ВОЗВРАЩАЕМ ЗАЩИТУ ОТ БЛОКИРОВКИ БОТОВ
+    // Передаем User-Agent, чтобы Netlify не блокировал скрипты в GitHub Actions
+    cy.visit('https://triple-test.netlify.app/sign-in', { 
+      timeout: 120000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+
     cy.url().should('include', '/sign-in');
     cy.get('body').should('be.visible');
 
-    // Используем надежные селекторы
-    cy.get('input[type="text"]', { timeout: 15000 })
+    // Даем приложению 3 секунды, чтобы React/Vue гарантированно отрисовал интерфейс
+    cy.wait(3000);
+
+    // Используем расширенный селектор (на случай, если поле рендерится как type="email")
+    cy.get('input[type="text"], input[type="email"], input[name="email"], input[name="login"]', { timeout: 15000 })
+      .first()
       .should('be.visible')
       .focus()
       .clear()
