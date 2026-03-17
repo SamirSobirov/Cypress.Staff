@@ -75,7 +75,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     // cy.get('.p-datatable', { timeout: 30000 }).should('be.visible');
     
-    // =========================================================
+   // =========================================================
     // ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА
     // =========================================================
     cy.log('🟢 ШАГ 2: ДОБАВЛЕНИЕ СОТРУДНИКА');
@@ -124,10 +124,18 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('not.be.disabled') 
       .click({ force: true });
 
-    cy.contains(/Сотрудник добавлен|added|success/i, { timeout: 20000 })
-      .should('be.visible');
+    // ❌ Убрали проверку всплывашки: cy.contains(/Сотрудник добавлен|added|success/i)...
+    // ✅ Добавили надежную проверку закрытия окна и обновления таблицы:
 
-    cy.wait(2000); 
+    // 1. Убеждаемся, что модальное окно создания закрылось
+    cy.get('.p-dialog', { timeout: 15000 }).should('not.exist');
+
+    // 2. Даем таблице время обновить данные с сервера
+    cy.wait(1000); 
+
+    // 3. Проверяем, что сотрудник реально появился в таблице
+    cy.get('.p-datatable-tbody', { timeout: 15000 }).should('contain', initialFirstName);
+
     // Записываем 2 - Добавление успешно
     cy.writeFile('auth_api_status.txt', '2');
 
