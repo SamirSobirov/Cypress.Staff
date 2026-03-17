@@ -3,18 +3,28 @@ Cypress.on('uncaught:exception', (err, runnable) => {
   return false;
 });
 
-describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
-  // Только цифры, никаких спецсимволов и букв, чтобы точно пройти любую строгую валидацию
-  const uniqueId = Math.floor(Math.random() * 10000000); 
+// Генерируем ТОЛЬКО БУКВЫ для имени, чтобы пройти любую строгую валидацию (без цифр!)
+const generateLetters = (len) => {
+  let res = '';
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+  for (let i = 0; i < len; i++) {
+    res += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return res;
+};
 
-  // УБРАЛИ ВСЕ ПОДЧЕРКИВАНИЯ из логина и email, чтобы фронтенд их не блокировал!
-  const initialFirstName = `Staff${uniqueId}`; 
+describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
+  const uniqueStr = generateLetters(6); // Только случайные буквы!
+  const uniqueNum = Math.floor(Math.random() * 1000000); // А для логина и почты можно цифры
+
+  // Делаем данные уникальными, но валидными
+  const initialFirstName = `Staff${uniqueStr}`; 
   const initialLastName = 'TestStaff';
-  const staffLogin = `login${uniqueId}`;
-  const staffEmail = `test${uniqueId}@mail.ru`;
+  const staffLogin = `login${uniqueNum}`;
+  const staffEmail = `test${uniqueNum}@mail.ru`;
   
   const editedLastName = 'Sobirov';
-  const editedFirstName = `Samir${uniqueId}`;
+  const editedFirstName = `Samir${uniqueStr}`;
 
   before(() => {
     cy.writeFile('auth_api_status.txt', '0');
@@ -42,17 +52,16 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.url().should('include', '/sign-in');
     cy.get('body').should('be.visible');
 
+    // Используем безопасный ввод
     cy.get('input[type="text"]', { timeout: 15000 })
       .should('be.visible')
       .focus()
-      .clear()
-      .type(Cypress.env('LOGIN_EMAIL'), { delay: 50, log: false }); 
+      .type(`{selectall}{backspace}${Cypress.env('LOGIN_EMAIL')}`, { delay: 50, log: false }); 
 
     cy.get('input[type="password"]')
       .should('be.visible')
       .focus()
-      .clear()
-      .type(Cypress.env('LOGIN_PASSWORD'), { delay: 50, log: false });
+      .type(`{selectall}{backspace}${Cypress.env('LOGIN_PASSWORD')}`, { delay: 50, log: false });
 
     cy.wait(1000); 
 
@@ -72,7 +81,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.writeFile('auth_api_status.txt', '1');
 
     cy.log('⚠️ Прямой переход в раздел Staff');
-    
     cy.wait(4000); 
 
     cy.visit('https://triple-test.netlify.app/flight/ru/staff', { timeout: 120000 });
@@ -96,10 +104,10 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       
     cy.wait(2500);
 
-    // 🔥 ДОБАВЛЯЕМ .blur() НА КАЖДОЕ ПОЛЕ, чтобы форма принудительно проверила данные
-    cy.get('input[placeholder="Supplier A"]').first().scrollIntoView().should('be.visible').focus().clear().type(initialLastName, { delay: 50 }).blur();
-    cy.get('input[placeholder="Supplier A"]').last().scrollIntoView().should('be.visible').focus().clear().type(initialFirstName, { delay: 50 }).blur();
-    cy.get('input[placeholder="example@easybooking.com"]').scrollIntoView().should('be.visible').focus().clear().type(staffEmail, { delay: 50 }).blur();
+    // 🔥 ИСПОЛЬЗУЕМ {selectall}{backspace} ВМЕСТО .clear() ДЛЯ БЕЗОПАСНОГО ВВОДА
+    cy.get('input[placeholder="Supplier A"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 });
+    cy.get('input[placeholder="Supplier A"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 });
+    cy.get('input[placeholder="example@easybooking.com"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 });
 
     cy.contains(/Логин|Login/i, { timeout: 30000 })
       .parent() 
@@ -108,11 +116,9 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .scrollIntoView()         
       .should('be.visible')
       .focus()   
-      .clear()
-      .type(staffLogin, { delay: 50 })
-      .blur(); 
+      .type(`{selectall}{backspace}${staffLogin}`, { delay: 50 });
       
-    cy.wait(1000);
+    cy.get('.p-dialog-header').first().click({ force: true });
 
     cy.contains('button', /Продолжить|Continue|Next/i, { timeout: 15000 })
       .scrollIntoView() 
@@ -124,6 +130,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .should('be.visible')
       .click({ force: true });
 
+    cy.get('.p-dialog-header').first().click({ force: true });
     cy.wait(1500); 
 
     cy.contains('button', /Создать|Create|Add/i, { timeout: 15000 })
@@ -137,8 +144,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.get('input[placeholder*="Поиск"], input[placeholder*="Search"]', { timeout: 10000 })
       .should('be.visible')
-      .clear()
-      .type(initialLastName, { delay: 50 });
+      .type(`{selectall}{backspace}${initialLastName}`, { delay: 50 });
 
     cy.wait(2000);
 
@@ -170,13 +176,13 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .scrollIntoView()
       .should('be.visible')
       .focus()
-      .type(`{selectall}{backspace}${editedLastName}`, { delay: 100 }).blur();
+      .type(`{selectall}{backspace}${editedLastName}`, { delay: 100 });
 
     cy.get('.p-dialog input[type="text"]').eq(1)
       .scrollIntoView()
       .should('be.visible')
       .focus()
-      .type(`{selectall}{backspace}${editedFirstName}`, { delay: 100 }).blur();
+      .type(`{selectall}{backspace}${editedFirstName}`, { delay: 100 });
     
     cy.contains('button', /Сохранить|Save/i)
       .scrollIntoView()
@@ -188,8 +194,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     
     cy.get('input[placeholder*="Поиск"], input[placeholder*="Search"]', { timeout: 10000 })
       .should('be.visible')
-      .clear()
-      .type(editedLastName, { delay: 50 });
+      .type(`{selectall}{backspace}${editedLastName}`, { delay: 50 });
       
     cy.wait(2000);
     
