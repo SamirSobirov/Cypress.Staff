@@ -1,4 +1,3 @@
-// Игнорируем фоновые ошибки самого приложения
 Cypress.on('uncaught:exception', (err, runnable) => {
   return false;
 });
@@ -129,9 +128,9 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .scrollIntoView()
       .click(); 
 
-    cy.wait(1500); // Даем время на обновление стейта валидации
+    cy.wait(1500); 
 
-    // Кликаем "Создать" (без force, чтобы проверить реальную доступность)
+    // Кликаем "Создать" 
     cy.contains('.app-button', /Создать|Create|Add/i, { timeout: 15000 })
       .should('be.visible')
       .should('not.be.disabled')
