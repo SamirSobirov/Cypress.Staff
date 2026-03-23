@@ -2,7 +2,7 @@ name: Staff Management
 
 on:
   schedule:
-    - cron: '0 * * * *' # Запуск каждый час
+    - cron: '0 */5 * * *' 
   workflow_dispatch:
     inputs:
       user_chat_id:
@@ -68,7 +68,6 @@ jobs:
         if: always()
         uses: appleboy/telegram-action@master
         with:
-          # Использован безопасный синтаксис из первого рабочего файла
           to: >-
             ${{ (github.event.inputs.user_chat_id != '') && 
             github.event.inputs.user_chat_id || 
