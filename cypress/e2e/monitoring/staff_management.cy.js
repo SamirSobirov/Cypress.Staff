@@ -2,7 +2,6 @@ Cypress.on('uncaught:exception', (err, runnable) => {
   return false;
 });
 
-// Генерируем ТОЛЬКО БУКВЫ для имени
 const generateLetters = (len) => {
   let res = '';
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
@@ -95,7 +94,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.contains('h3, h1, .page-header', /Список сотрудников|Staff List/i, { timeout: 30000 })
       .should('be.visible');
 
-    // 💡 ИСПРАВЛЕНИЕ: Ищем конкретно Add Staff или Добавить, чтобы не зацепить другие кнопки Add
     cy.get('button', { timeout: 20000 })
       .contains(/Добавить|Add Staff/i)
       .should('be.visible')
@@ -103,7 +101,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       
     cy.wait(2500); 
 
-    // Заполнение формы (сделал поиск по части плейсхолдера, так надежнее)
     cy.get('input[placeholder*="Supplier"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 }).blur();
     cy.get('input[placeholder*="Supplier"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 }).blur();
     cy.get('input[placeholder*="easybooking"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 }).blur();
@@ -127,7 +124,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.wait(1500); 
 
-    // Клик создания внутри модалки
     cy.get('.p-dialog', { timeout: 15000 })
       .contains('.app-button', /Создать|Create/i)
       .should('be.visible')
@@ -144,7 +140,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     // Поиск созданного
     cy.get('input[placeholder*="Поиск"], input[placeholder*="Search"]')
       .should('be.visible')
-      .clear() // 💡 Добавлена очистка на всякий случай
+      .clear()
       .type(`${initialLastName}`);
 
     cy.wait(2000);
@@ -176,7 +172,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.get('.p-dialog', { timeout: 15000 }).should('not.exist');
     cy.wait(2000);
     
-    // 💡 ИСПРАВЛЕНИЕ: Добавлен мультиязычный поиск и очистка поля
     cy.get('input[placeholder*="Поиск"], input[placeholder*="Search"]')
       .should('be.visible')
       .clear()
