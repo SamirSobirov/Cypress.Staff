@@ -74,7 +74,6 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.log('⚠️ Переход в раздел Staff через боковое меню');
     
-    // Ждем сайдбар и кликаем на "Сотрудники"
     cy.get('.sidebar-link', { timeout: 25000 })
       .should('be.visible');
 
@@ -93,22 +92,21 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.intercept('POST', '**/api/staff*').as('apiCreateStaff');
 
-    // Ждем отрисовки страницы
     cy.contains('h3, h1, .page-header', /Список сотрудников|Staff List/i, { timeout: 30000 })
       .should('be.visible');
 
-    // Кликаем "Добавить"
+    // 💡 ИСПРАВЛЕНИЕ: Ищем конкретно Add Staff или Добавить, чтобы не зацепить другие кнопки Add
     cy.get('button', { timeout: 20000 })
-      .contains(/Добавить|Add/i)
+      .contains(/Добавить|Add Staff/i)
       .should('be.visible')
       .click({ force: true });
       
     cy.wait(2500); 
 
-    // Заполнение формы
-    cy.get('input[placeholder="Supplier A"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 }).blur();
-    cy.get('input[placeholder="Supplier A"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 }).blur();
-    cy.get('input[placeholder="example@easybooking.com"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 }).blur();
+    // Заполнение формы (сделал поиск по части плейсхолдера, так надежнее)
+    cy.get('input[placeholder*="Supplier"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 }).blur();
+    cy.get('input[placeholder*="Supplier"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 }).blur();
+    cy.get('input[placeholder*="easybooking"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 }).blur();
 
     cy.contains(/Логин|Login/i, { timeout: 15000 })
       .parent() 
@@ -123,19 +121,18 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       .scrollIntoView() 
       .click({ force: true });
       
-    // Выбор роли
     cy.contains('.role-card', /Оператор|Operator/i, { timeout: 10000 })
       .scrollIntoView()
       .click(); 
 
     cy.wait(1500); 
 
-    // Кликаем "Создать" 
- cy.get('.p-dialog', { timeout: 15000 })
-  .contains('.app-button', /Создать|Create/i)
-  .should('be.visible')
-  .should('not.be.disabled')
-  .click(); 
+    // Клик создания внутри модалки
+    cy.get('.p-dialog', { timeout: 15000 })
+      .contains('.app-button', /Создать|Create/i)
+      .should('be.visible')
+      .should('not.be.disabled')
+      .click(); 
 
     cy.wait('@apiCreateStaff', { timeout: 20000 }).then((interception) => {
       expect(interception.response.statusCode).to.be.oneOf([200, 201]);
@@ -147,7 +144,8 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     // Поиск созданного
     cy.get('input[placeholder*="Поиск"], input[placeholder*="Search"]')
       .should('be.visible')
-      .type(`{selectall}{backspace}${initialLastName}`);
+      .clear() // 💡 Добавлена очистка на всякий случай
+      .type(`${initialLastName}`);
 
     cy.wait(2000);
     cy.get('.p-datatable-tbody', { timeout: 15000 }).should('contain', initialLastName);
@@ -178,7 +176,12 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
     cy.get('.p-dialog', { timeout: 15000 }).should('not.exist');
     cy.wait(2000);
     
-    cy.get('input[placeholder*="Поиск"]').type(`{selectall}{backspace}${editedLastName}`);
+    // 💡 ИСПРАВЛЕНИЕ: Добавлен мультиязычный поиск и очистка поля
+    cy.get('input[placeholder*="Поиск"], input[placeholder*="Search"]')
+      .should('be.visible')
+      .clear()
+      .type(`${editedLastName}`);
+      
     cy.get('.p-datatable-tbody', { timeout: 15000 }).should('contain', editedLastName);
     cy.writeFile('auth_api_status.txt', '3');
 
