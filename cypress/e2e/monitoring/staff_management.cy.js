@@ -91,19 +91,27 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
 
     cy.intercept('POST', '**/api/staff*').as('apiCreateStaff');
 
-    cy.contains('h3, h1, .page-header', /Список сотрудников|Staff List/i, { timeout: 30000 })
-      .should('be.visible');
+    // Ждем появления заголовка или таблицы
+    cy.contains(/Список сотрудников|Staff List/i, { timeout: 30000 }).should('be.visible');
 
-    cy.get('button', { timeout: 20000 })
-      .contains(/Добавить|Add Staff/i)
-      .should('be.visible')
-      .click({ force: true });
-      
-    cy.wait(2500); 
+    // Кнопка "Добавить"
+    cy.get('button').contains(/Добавить|Add Staff/i).should('be.visible').click({ force: true });
+    cy.wait(2000); 
 
-    cy.get('input[placeholder*="Supplier"]').first().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialLastName}`, { delay: 50 }).blur();
-    cy.get('input[placeholder*="Supplier"]').last().scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${initialFirstName}`, { delay: 50 }).blur();
-    cy.get('input[placeholder*="easybooking"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 }).blur();
+    // ОПРЕДЕЛЯЕМ ФУНКЦИЮ (она найдет input рядом с любым label)
+    const fillField = (labelRegex, value) => {
+      cy.contains('label', labelRegex)
+        .closest('div') // Ищем ближайший контейнер, где лежит и текст, и поле
+        .find('input')
+        .should('be.visible')
+        .clear()
+        .type(value, { delay: 50 });
+    };
+
+    // ЗАПОЛНЯЕМ ВСЕ ПОЛЯ
+    fillField(/Фамилия|Last Name/i, initialLastName);
+    fillField(/Имя|First Name/i, initialFirstName);
+    cy.get('input[placeholder*="example"]').scrollIntoView().should('be.visible').focus().type(`{selectall}{backspace}${staffEmail}`, { delay: 50 }).blur();
 
     cy.contains(/Логин|Login/i, { timeout: 15000 })
       .parent() 
@@ -120,7 +128,7 @@ describe('Staff Management Flow', { pageLoadTimeout: 120000 }, () => {
       
     cy.contains('.role-card', /Оператор|Operator/i, { timeout: 10000 })
       .scrollIntoView()
-      .click(); 
+      .click();
 
     cy.wait(1500); 
 
